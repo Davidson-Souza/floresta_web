@@ -148,8 +148,7 @@ impl FlorestaChain {
             wallet,
         }
     }
-
-    #[wasm_bindgen]
+    /// Add a new address to the wallet. This will be used to filter transactions.
     pub unsafe fn add_address(&self, addr: String) -> Result<(), String> {
         let address = Address::from_str(&addr).map_err(|_| "Invalid address")?;
         self.wallet
@@ -158,7 +157,8 @@ impl FlorestaChain {
             .insert(address.script_pubkey().clone());
         Ok(())
     }
-
+    /// Builds a chain from the given roots and tip. This is used to initialize the chain from
+    /// a trusted source.
     pub unsafe fn build_chain_from(
         leaves: u64,
         roots: Array,
@@ -190,20 +190,28 @@ impl FlorestaChain {
     pub unsafe fn show_height(&self) -> u32 {
         self.chain_state.get_height().unwrap()
     }
+    /// Whether the chain is currently in IBD (Initial Block Download) mode. This is true when the
+    /// chain is still syncing with the network.
     #[wasm_bindgen(getter, js_name = "ibd")]
     pub unsafe fn show_ibd(&self) -> bool {
         self.chain_state.is_in_idb()
     }
+    /// A string representing the network we are on. This is always "Regtest" for now
     #[wasm_bindgen(getter, js_name = "network")]
     pub unsafe fn show_network(&self) -> String {
         "Regtest".into()
     }
+    /// Returns the current difficulty of the last block. This is a number that represents the
+    /// amount of hashes that must be computed to find a valid block, on average. The returned value
+    /// is a multiple of the minimum difficulty, which is different for each network.
     #[wasm_bindgen(getter, js_name = "difficulty")]
     pub unsafe fn show_difficulty(&self) -> u64 {
         let block = self.chain_state.get_best_block().unwrap();
         let header = self.chain_state.get_block_header(&block.1).unwrap();
         header.difficulty(bitcoin::Network::Regtest)
     }
+    // The target is the uint256 number that sets the difficulty of the block. A valid solution
+    // must be less than the target
     #[wasm_bindgen(getter, js_name = "target")]
     pub unsafe fn show_target(&self) -> String {
         let block = self.chain_state.get_best_block().unwrap();
@@ -216,6 +224,7 @@ impl FlorestaChain {
     pub unsafe fn return_tip(&self) -> String {
         self.chain_state.get_best_block().unwrap().1.to_string()
     }
+    /// Returns a random address. You shouldn't use this for anything other than testing
     pub unsafe fn get_random_address(&self) -> Result<String, String> {
         let mut key = [0u8; 32];
         let secp = bitcoin::secp256k1::Secp256k1::new();
