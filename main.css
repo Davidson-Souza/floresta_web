@@ -1,0 +1,95 @@
+#content {
+    display: block;
+    align-self: center;
+    max-width: 60%;
+    position: absolute;
+    left: 19%;
+    top: 20px;
+    letter-spacing: 0.04em
+}
+
+#info_outer {
+    border-radius: 25px;
+    position: relative;
+    border: 1px solid grey;
+    margin-bottom: 3%;
+    padding: 2%;
+}
+
+#start {
+    border: none;
+    color: black;
+    padding: 10px 20px;
+    border-radius: 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin-right: 10px;
+}
+
+#start:disabled {
+    background-color: #1ad452;
+    color: white;
+}
+
+#start:enabled:hover {
+    background-color: #F7931A;
+    color: white;
+}
+
+#wallet {
+    border: none;
+    color: black;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 10px;
+    margin-right: 10px;
+    width: 50%;
+}
+
+#add_wallet {
+    background-color: #F7931A;
+    border: none;
+    color: black;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    border-radius: 20px;
+    font-size: 16px;
+}
+
+#add_wallet:hover {
+    background-color: #F7931A;
+    color: white;
+}
+
+#random_wallet {
+    background-color: #F7931A;
+    border: none;
+    color: black;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    border-radius: 20px;
+    font-size: 16px;
+}
+
+#random_wallet:hover {
+    background-color: #F7931A;
+    color: white;
+}
+
+body {
+    background-color: #03001C;
+    color: #B6EADA;
+}
+
+a:link {
+    text-decoration: none;
+}

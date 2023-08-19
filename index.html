@@ -4,57 +4,45 @@
 <head>
   <meta charset="UTF-8">
   <title>Floresta + Wasm demo</title>
-  <script type="module">
-    import init, { FlorestaChain } from './pkg/example_libfloresta.js';
-    let florestaChain;
-
-    async function sync(height) {
-      const res = await fetch('https://api.dlsouza.lol/block/$'.replace("$", height), {
-        mode: 'cors',
-        method: 'GET',
-        headers: {
-          'Access-Control-Allow-Origin': '*'
-        }
-      });
-      const block = await res.json();
-
-      florestaChain.accept_block(JSON.stringify(block.data));
-    }
-
-    setInterval(() => {
-      const paragaph = document.getElementById('height');
-      paragaph.innerHTML = `Best block: ${florestaChain.tip} <br>
-                            Height: ${florestaChain.height} <br>
-                            network: ${florestaChain.network} <br>
-                            ibd: ${florestaChain.ibd} <br>
-                            difficulty: ${florestaChain.difficulty} <br>
-                          `;
-    }, 1000);
-
-    (async function run() {
-      await init();
-      florestaChain = new FlorestaChain();
-
-      for (let i = 1; i < 100; i++) {
-        await sync(i);
-      }
-      florestaChain.toggle_ibd();
-    })().catch(console.error);
-  </script>
+  <link rel="stylesheet" href="./main.css">
+  <script type="module" src="main.js"></script>
 </head>
 
 <body>
-  <div id="content"
-    style="display: block; align-self: center; max-width: 60%; position: absolute; left: 20%; top: 100px;">
-    <p>
-      This is a <a href="https://github.com/Davidson-Souza/floresta_web">demo</a> demo on how to use Floresta with
-      WebAssembly. The module Floresta
-      Chain is an export form the Rust library, generated with wasm-pack. You can create
-      a new instance of Floresta Chain and call its methods from JavaScript. This is our
+  <div id="content">
+    <h1 style="text-align: center;">Floresta 🤝 WebAssembly</h1>
+    <p style="text-align: justify; font-size: 20px;">
+      This is a <a href="https://github.com/Davidson-Souza/floresta_web">demo</a> on how to use Floresta with
+      WebAssembly. This module is an export form the Rust library, generated with wasm-pack. You can create
+      a new instance of Floresta Chain and call its methods from JavaScript. Floresta Chain is our
       representation of the Bitcoin Blockchain, it contains a chain of headers, the accumulator
       and some other information about the chain. This example will sync a few blocks from a remote
-      api using <a href="https://github.com/Davidson-Souza/bridge">a REST API</a>.
+      api using <a href="https://github.com/Davidson-Souza/bridge">a REST API</a>. Click the button below to start
+      syncing. When you load this page, it'll download all the headers, because we need them to perform
+      multiple operations on the chain.
     </p>
-    <div id="height" style="position: relative;">Syncing...</p>
+    <div id="info_outer">
+      <div id="height" style="position: relative; left: 10%;">
+        Loading...
+      </div>
+    </div>
+    <div>
+      <button id="start" onclick="sync_loop">Start Sync</button>
+    </div>
+    <div style="position: relative; top: 20px; letter-spacing: 0.04em; text-align: justify; font-size: 20px;">
+      <p>
+        While using Floresta, you should look at the blocks to find transactions that belong to you. You can add
+        addresses to your wallet and Floresta will look for transactions that belong to you. Just drop an address
+        in the input bellow, and Floresta will list all transaction destined to you. You may also click the button
+        to generate a new fresh one. You can then go ahead and visit <a href="https://signetfaucet.com/">Signet
+          Faucet</a>
+        to get some coins. Once it is confirmed, you can see the transaction in the list bellow.
+      </p>
+      <h2>Add an address</h2>
+      <input type="text" id="wallet" value="" , placeholder="tb1xxxxx">
+      <input type="button" id="add_wallet" onclick="add_address_to_wallet" , value="Add">
+      <input type="button" id="random_wallet" onclick="add_random_address_to_wallet" , value="Give-me one!">
+      <p>Our wallet</p>
+      <p id="our_txs"></p>
     </div>
 </body>

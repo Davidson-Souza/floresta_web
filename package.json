@@ -1,0 +1,14 @@
+{
+  "name": "example_libfloresta_site",
+  "version": "1.0.0",
+  "description": "A simple example of how to use libfloresta on the Web. This example uses the [floresta](https://github.com/Davidson-Souza/floresta) library to create a simple node that keeps up with the network, and allows verification of utreexo proofs.",
+  "main": "main.js",
+  "scripts": {
+    "serve": "python3 -m http.server 8080"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "example_libfloresta": "^0.1.1"
+  }
+}
