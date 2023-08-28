@@ -3,10 +3,8 @@ name = "example_libfloresta"
 version = "0.1.1"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-floresta-chain = { path = "../utreexo-wallet/crates/floresta-chain", version = "0.1.0" }
+floresta-chain = { git = "https://github.com/Davidson-Souza/floresta", version = "0.1.0" }
 secp256k1 = "0.27.0"
 wasm-bindgen = "0.2.87"
 rustreexo = { version = "0.1.0", features = ["with-serde"] }
@@ -19,7 +17,9 @@ serde = "1.0.183"
 anyhow = "1.0.75"
 gloo-net = "0.4.0"
 getrandom = { version = "0.2", features = ["js"] }
+
 [lib]
 crate-type = ["cdylib", "rlib"]
+
 [patch."https://github.com/rust-lang/crates.io-index"]
 bitcoin = { git = "https://github.com/Davidson-Souza/rust-bitcoin", rev = "a320c6535567acd3771da37759a7644eea5c6eb2" }
