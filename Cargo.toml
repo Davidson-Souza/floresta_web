@@ -15,8 +15,11 @@ hex = "0.4.3"
 js-sys = "0.3.64"
 serde = "1.0.183"
 anyhow = "1.0.75"
-gloo-net = "0.4.0"
 getrandom = { version = "0.2", features = ["js"] }
+futures = "0.3.28"
+wasm-bindgen-futures = "0.4.37"
+reqwest = { version = "0.11.20", default-features = false, features = ["rustls", "blocking"] }
+web-sys = { version = "0.3.64", features = ["Storage"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

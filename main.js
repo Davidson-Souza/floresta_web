@@ -56,7 +56,7 @@ async function update_tip() {
     while (true) {
         // Download the next block from the REST API. See the README for more info
         // about the API and the response format.
-        const res = await fetch('http://localhost:8080/block/$'.replace("$", height), {
+        const res = await fetch('https://api.dlsouza.lol/block/$'.replace("$", height), {
             mode: 'cors',
             method: 'GET',
             headers: {
@@ -69,7 +69,7 @@ async function update_tip() {
             break;
         }
         console.log("adding block", block.data.block, height);
-        florestaChain.accept_block(JSON.stringify(block.data));
+        await florestaChain.accept_block(JSON.stringify(block.data));
         ++height;
     }
 }
@@ -94,7 +94,11 @@ function add_address_to_wallet() {
 async function sync_loop() {
     await update_tip()
     florestaChain.toggle_ibd(); // We are done syncing, so we can tell our chain we are done
-    update_ui();
+    try {
+        update_ui();
+    } catch (e) {
+        console.log(e)
+    }
     document.getElementById('start').disabled = true;
 }
 
@@ -102,7 +106,12 @@ async function sync_loop() {
 (async function run() {
     await init();
     // This is how you create a new chain from scratch, without any blocks
-    florestaChain = new FlorestaChain();
+    // florestaChain = new FlorestaChain();
+    florestaChain = FlorestaChain.build_chain_from(
+        "00000128bf7dbbbd14bbe1873505ccb6329b3347f707de833e39b0967c71b6a9",
+        157249,
+        "000000201fa31c8d3f09b10c2185d062b313101511debeb42bdd4b3f672f2a4ae0000000d5dbaf328baa56b5763e9c81d029ca512255dbb33a4b87355f4000a6b9d7ec7f0c66e464274a011ef943a400"
+    );
     console.log("Loaded chain at height", florestaChain.height);
     // Set up the UI
     update_ui();
@@ -112,16 +121,6 @@ async function sync_loop() {
     random_wallet.onclick = () => add_random_address_to_wallet();
     document.getElementById('start').disabled = false;
 })().catch(console.error);
-
-// Update the UI every few seconds
-setInterval(() => {
-    update_ui();
-    // The user didn't click "Start", so we don't want to sync
-    if (florestaChain.ibd) {
-        return;
-    }
-    update_tip(); // If a new block has been added, download it
-}, 5000);
 
 function update_ui() {
     // Only update the UI if the tip has changed
@@ -142,3 +141,12 @@ function update_ui() {
     const our_txs = document.getElementById('our_txs');
     our_txs.innerHTML = `Our txs: ${florestaChain.our_txs}`;
 }
+
+setInterval(() => {
+    update_ui();
+    // The user didn't click "Start", so we don't want to sync
+    if (florestaChain.ibd) {
+        return;
+    }
+    update_tip(); // If a new block has been added, download it
+}, 5000); // Check every 5 seconds

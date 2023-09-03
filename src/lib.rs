@@ -1,34 +1,35 @@
-// SPDX-License-Identifier: Apache-2.0
-#![allow(unused)]
-
-use std::{
-    borrow::BorrowMut,
-    cell::RefCell,
-    collections::{HashMap, HashSet},
-    fmt::format,
-    str::FromStr,
-    sync::Arc,
-};
+// SPDX-License-Identifier: MIT
 
 use bitcoin::{
     consensus::{self, deserialize},
     hashes::{sha256, Hash},
     network::utreexo::CompactLeafData,
+    util::uint::Uint256,
     Address, Block, BlockHash, BlockHeader, OutPoint, PrivateKey, Script, Transaction, TxOut,
 };
 use floresta_chain::{
-    proof_util::{self, reconstruct_leaf_data},
-    pruned_utreexo::error::DatabaseError,
+    proof_util,
     pruned_utreexo::{
         chain_state::ChainState, chain_state_builder::ChainStateBuilder, BlockchainInterface,
         UpdatableChainstate,
     },
-    ChainStore, KvChainStore, Network,
+    pruned_utreexo::{error::DatabaseError, ChainStore},
+    Network,
 };
-use js_sys::Array;
-use rustreexo::accumulator::{node_hash::NodeHash, proof::Proof};
+use rustreexo::accumulator::proof::Proof;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
+use wasm_bindgen::prelude::wasm_bindgen;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: String);
+}
 
 #[derive(Debug)]
 /// The error returned by our database. Empty for now.
@@ -38,6 +39,7 @@ impl DatabaseError for Error {}
 /// A wrapper around a the chain struct.
 pub struct FlorestaChain {
     chain_state: ChainState<WasmStore>,
+    hashes: Vec<u8>,
     wallet: Wallet,
 }
 #[wasm_bindgen]
@@ -54,6 +56,7 @@ pub struct Wallet {
     address_set: RefCell<HashSet<Script>>,
     transaction_list: RefCell<Vec<Transaction>>,
 }
+
 impl ChainStore for WasmStore {
     type Error = Error;
     fn save_roots(&self, roots: Vec<u8>) -> Result<(), Error> {
@@ -98,6 +101,7 @@ impl ChainStore for WasmStore {
             .get(&block_hash.to_string())
             .map(|s| hex::decode(s).unwrap())
             .map(|s| consensus::deserialize(&s).unwrap());
+
         Ok(header)
     }
 
@@ -136,16 +140,12 @@ impl FlorestaChain {
     /// Creates a new FlorestaChain object. This should be used with new FlorestaChain()
     #[wasm_bindgen(constructor)]
     pub unsafe fn new() -> Self {
-        let chain_state = ChainState::new(WasmStore::default(), Network::Regtest, None);
-        let mut wallet = Wallet::default();
-        let address = Address::from_str("bcrt1q9t6g0l36wgk454masqey03npa6esn370g4wuc9");
-        wallet
-            .address_set
-            .borrow_mut()
-            .insert(address.unwrap().script_pubkey());
+        let chain_state = ChainState::new(WasmStore::default(), Network::Signet, None);
+        let wallet = Wallet::default();
         Self {
             chain_state,
             wallet,
+            hashes: Vec::new(),
         }
     }
     /// Add a new address to the wallet. This will be used to filter transactions.
@@ -160,29 +160,84 @@ impl FlorestaChain {
     /// Builds a chain from the given roots and tip. This is used to initialize the chain from
     /// a trusted source.
     pub unsafe fn build_chain_from(
-        leaves: u64,
-        roots: Array,
         tip: String,
         height: u32,
         header: String,
     ) -> Result<FlorestaChain, String> {
-        let roots = roots
-            .into_iter()
-            .map(|x| x.as_string().unwrap().parse().unwrap())
-            .collect();
+        // let roots = roots
+        //     .into_iter()
+        //     .map(|x| x.as_string().unwrap().parse().unwrap())
+        //     .collect();
+        let leaves = 3589788;
+        let roots = [
+            [
+                125_u8, 164, 105, 220, 149, 130, 211, 189, 195, 241, 42, 166, 124, 109, 143, 231,
+                66, 116, 44, 102, 182, 140, 175, 152, 195, 63, 44, 56, 34, 5, 255, 116,
+            ],
+            [
+                1, 67, 238, 54, 53, 30, 130, 100, 184, 211, 253, 100, 228, 90, 19, 118, 187, 212,
+                89, 240, 173, 210, 49, 245, 59, 248, 23, 225, 101, 183, 197, 205,
+            ],
+            [
+                140, 164, 48, 221, 81, 98, 92, 204, 237, 93, 223, 31, 206, 233, 165, 235, 68, 80,
+                150, 195, 194, 249, 102, 75, 215, 241, 79, 123, 80, 151, 226, 152,
+            ],
+            [
+                253, 169, 247, 218, 192, 182, 116, 7, 69, 248, 218, 57, 72, 214, 124, 228, 148,
+                110, 198, 98, 83, 50, 251, 172, 183, 236, 220, 12, 67, 108, 4, 126,
+            ],
+            [
+                55, 235, 54, 1, 65, 192, 18, 60, 196, 66, 122, 160, 171, 47, 250, 208, 33, 182,
+                224, 54, 129, 126, 25, 137, 109, 195, 96, 7, 98, 121, 111, 193,
+            ],
+            [
+                7, 8, 193, 215, 236, 171, 71, 178, 73, 249, 185, 93, 215, 77, 196, 8, 131, 131, 40,
+                129, 199, 52, 215, 212, 155, 116, 21, 20, 163, 250, 13, 248,
+            ],
+            [
+                78, 204, 53, 177, 253, 216, 178, 84, 183, 19, 75, 225, 36, 234, 85, 194, 13, 202,
+                144, 183, 6, 18, 227, 33, 54, 197, 49, 39, 100, 183, 87, 195,
+            ],
+            [
+                86, 155, 134, 165, 70, 86, 55, 121, 0, 240, 230, 199, 115, 151, 216, 161, 0, 106,
+                78, 80, 159, 216, 88, 1, 185, 42, 39, 184, 201, 165, 102, 253,
+            ],
+            [
+                16, 185, 24, 187, 173, 239, 240, 149, 54, 203, 104, 236, 117, 87, 25, 114, 108,
+                234, 225, 149, 152, 0, 181, 73, 219, 62, 99, 165, 16, 57, 210, 156,
+            ],
+            [
+                97, 82, 82, 234, 178, 94, 99, 110, 150, 238, 211, 11, 51, 13, 192, 204, 91, 255,
+                232, 172, 22, 63, 236, 224, 248, 220, 9, 93, 14, 139, 71, 250,
+            ],
+            [
+                49, 117, 230, 111, 51, 175, 131, 200, 226, 153, 209, 85, 192, 203, 165, 66, 59, 16,
+                185, 224, 191, 97, 240, 98, 70, 222, 33, 12, 9, 242, 8, 150,
+            ],
+            [
+                99, 42, 17, 79, 148, 114, 95, 130, 116, 31, 102, 136, 239, 74, 118, 208, 151, 160,
+                222, 132, 129, 12, 173, 226, 17, 163, 235, 94, 78, 32, 147, 209,
+            ],
+        ]
+        .into_iter()
+        .map(|x| x.into())
+        .collect::<Vec<_>>();
+
         let header: BlockHeader = deserialize(&hex::decode(header).unwrap()).unwrap();
 
         let chain_state = ChainStateBuilder::new()
             .with_tip((tip.parse().unwrap(), height), header)
             .assume_utreexo(rustreexo::accumulator::stump::Stump { leaves, roots })
             .with_chainstore(WasmStore::default())
-            .with_chain_params(Network::Regtest.into())
+            .with_chain_params(Network::Signet.into())
             .build()
             .map_err(|e| format!("{:?}", e))?;
+        let hashes = include_bytes!("../hashes.bin");
 
         Ok(Self {
             chain_state,
             wallet: Wallet::default(),
+            hashes: hashes.to_vec(),
         })
     }
     /// Returns the current height of the chain
@@ -196,10 +251,10 @@ impl FlorestaChain {
     pub unsafe fn show_ibd(&self) -> bool {
         self.chain_state.is_in_idb()
     }
-    /// A string representing the network we are on. This is always "Regtest" for now
+    /// A string representing the network we are on. This is always "Signet" for now
     #[wasm_bindgen(getter, js_name = "network")]
     pub unsafe fn show_network(&self) -> String {
-        "Regtest".into()
+        "Signet".into()
     }
     /// Returns the current difficulty of the last block. This is a number that represents the
     /// amount of hashes that must be computed to find a valid block, on average. The returned value
@@ -208,7 +263,13 @@ impl FlorestaChain {
     pub unsafe fn show_difficulty(&self) -> u64 {
         let block = self.chain_state.get_best_block().unwrap();
         let header = self.chain_state.get_block_header(&block.1).unwrap();
-        header.difficulty(bitcoin::Network::Regtest)
+        (Uint256([
+            0x0000000000000000,
+            0x0000000000000000,
+            0x0000000000000000,
+            0x00000377ae000000,
+        ]) / header.target())
+        .low_u64()
     }
     // The target is the uint256 number that sets the difficulty of the block. A valid solution
     // must be less than the target
@@ -228,10 +289,10 @@ impl FlorestaChain {
     pub unsafe fn get_random_address(&self) -> Result<String, String> {
         let mut key = [0u8; 32];
         let secp = bitcoin::secp256k1::Secp256k1::new();
-        let rand = getrandom::getrandom(&mut key).expect("Can't sample random bytes");
-        let key = PrivateKey::from_slice(&key, bitcoin::Network::Regtest).unwrap();
+        getrandom::getrandom(&mut key).expect("Can't sample random bytes");
+        let key = PrivateKey::from_slice(&key, bitcoin::Network::Signet).unwrap();
         let pk = key.public_key(&secp);
-        let address = Address::p2wpkh(&pk, bitcoin::Network::Regtest).map_err(|e| e.to_string())?;
+        let address = Address::p2wpkh(&pk, bitcoin::Network::Signet).map_err(|e| e.to_string())?;
         Ok(address.to_string())
     }
     #[wasm_bindgen(getter, js_name = "our_txs")]
@@ -250,13 +311,13 @@ impl FlorestaChain {
     pub unsafe fn accept_block(&mut self, block: String) -> Result<(), String> {
         let block: WasmBlock = serde_json::from_str(&block).map_err(|e| e.to_string())?;
 
-        let mut leaf_data = block.leaf_data;
-        let mut proof = block.proof.into();
+        let leaf_data = block.leaf_data;
+        let proof: Proof = block.proof.into();
         self.chain_state
             .accept_header(block.block.header)
             .map_err(|e| format!("Accept header: {e:?}"))?;
         let (del_hashes, inputs) = self
-            .process_proof(leaf_data, &block.block.txdata, &block.block.block_hash())
+            .process_proof(leaf_data, &block.block.txdata)
             .map_err(|e| format!("Process Proof: {e:?}"))?;
         let our_transactions = block
             .block
@@ -283,11 +344,15 @@ impl FlorestaChain {
             .map_err(|e| format!("Connect Block: {e:?}"))?;
         Ok(())
     }
+    fn get_block_hash(&mut self, height: u32) -> BlockHash {
+        let offset = (height * 32) as usize;
+        let hash = &self.hashes[offset..(offset + 32)];
+        BlockHash::from_slice(&hash).unwrap()
+    }
     fn process_proof(
-        &self,
+        &mut self,
         leaves: Vec<CompLeafData>,
         transactions: &[Transaction],
-        block_hash: &BlockHash,
     ) -> anyhow::Result<(Vec<sha256::Hash>, HashMap<OutPoint, TxOut>)> {
         let mut leaves_iter = leaves.iter().cloned();
         let mut tx_iter = transactions.iter();
@@ -311,10 +376,10 @@ impl FlorestaChain {
                 if !inputs.contains_key(&input.previous_output) {
                     if let Some(leaf) = leaves_iter.next() {
                         let height = leaf.header_code >> 1;
-                        let hash = self
-                            .chain_state
-                            .get_block_hash(height)
-                            .map_err(|e| anyhow::anyhow!("Failed to get block hash: {:?}", e))?;
+                        let hash = match self.chain_state.get_block_hash(height) {
+                            Err(_) => self.get_block_hash(height),
+                            Ok(hash) => hash,
+                        };
                         let leaf = proof_util::reconstruct_leaf_data(&leaf.into(), input, hash)
                             .expect("Invalid proof");
                         // FIXME: Bring this back after finding wat the frick is going on with
@@ -408,9 +473,4 @@ impl From<CompLeafData> for CompactLeafData {
             spk_ty,
         }
     }
-}
-/// An alternative panic handler
-#[cfg(feature = "console_error_panic_hook")]
-pub fn set_panic_hook() {
-    console_error_panic_hook::set_once();
 }

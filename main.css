@@ -1,13 +1,16 @@
 #content {
-    display: block;
+    display: flex;
     align-self: center;
-    max-width: 60%;
-    position: absolute;
+    /* max-width: 60%; */
+    /* position: absolute; */
     left: 19%;
     top: 20px;
-    letter-spacing: 0.04em
+    letter-spacing: 0.04em;
+    flex-direction: column;
+    padding: 20px 50px;
+    max-width: 680px;
+    margin: auto;
 }
-
 #info_outer {
     border-radius: 25px;
     position: relative;
@@ -87,7 +90,7 @@
 
 body {
     background-color: #03001C;
-    color: #B6EADA;
+    color: white;
 }
 
 a:link {
